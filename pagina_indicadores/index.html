@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda DEL — Município em Dados | Ceará</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --azul:#143D5E; --azul2:#1d567f; --verde:#2E9E5B; --teal:#1AA6A0; --vermelho:#d62728;
+    --cinza:#7f7f7f; --bg:#f4f6f9; --card:#ffffff; --texto:#222; --muted:#667;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--texto);line-height:1.5}
+  header{background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff;padding:24px 20px;border-bottom:4px solid var(--verde)}
+  header .brand{font-size:.78rem;letter-spacing:3px;text-transform:uppercase;font-weight:700;opacity:.85;margin-bottom:6px}
+  header h1{margin:0 0 4px;font-size:1.6rem}
+  header p{margin:0;opacity:.92;font-size:.95rem}
+  header .tagline{font-style:italic;opacity:.8;font-size:.86rem;margin-top:6px;border-left:3px solid var(--verde);padding-left:10px}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0}
+  select{padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem;background:#fff}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;border-bottom:2px solid #e2e8f0}
+  .tab{padding:10px 16px;cursor:pointer;border:none;background:none;font-size:.95rem;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px}
+  .tab.active{color:var(--azul);font-weight:600;border-bottom-color:var(--azul)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
+  .card-kpi{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .card-kpi .v{font-size:1.5rem;font-weight:700;color:var(--azul)}
+  .card-kpi .l{font-size:.82rem;color:var(--muted);margin-top:2px}
+  .panel{display:none}
+  .panel.active{display:block}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px}
+  .chart-card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .chart-card h3{margin:0 0 4px;font-size:1.02rem;color:var(--azul)}
+  .chart-card .sub{font-size:.82rem;color:var(--muted);margin:0 0 12px}
+  .chart-box{position:relative;height:300px}
+  footer{text-align:center;color:var(--muted);font-size:.8rem;padding:24px}
+  footer .credito{margin-top:8px;font-weight:600;color:var(--azul)}
+  footer a{color:var(--verde);text-decoration:none}
+  .watermark{position:fixed;right:12px;bottom:12px;background:rgba(20,61,94,.92);color:#fff;font-size:.72rem;
+    padding:7px 11px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:50;line-height:1.35;max-width:230px}
+  .watermark strong{display:block;font-size:.78rem}
+  .watermark a{color:#7FE0A8;text-decoration:none}
+  @media(max-width:520px){.watermark{font-size:.66rem;max-width:180px}}
+  @media(max-width:520px){.grid{grid-template-columns:1fr}.chart-box{height:260px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-bottom:0">
+    <div class="brand">GestPública</div>
+    <h1>Município em Dados — Agenda DEL</h1>
+    <p>Indicadores sociais, econômicos e de equidade dos municípios do Ceará</p>
+    <p class="tagline">Ajudamos sua cidade a acompanhar os avanços na gestão pública</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="controls">
+    <label for="muni"><strong>Município:</strong></label>
+    <select id="muni"></select>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="cards" id="kpis"></div>
+
+  <div class="panel" data-panel="demografia">
+    <div class="grid">
+      <div class="chart-card"><h3>Evolução populacional</h3><p class="sub">População residente (estimativas e censos IBGE)</p><div class="chart-box"><canvas id="c_pop"></canvas></div></div>
+      <div class="chart-card"><h3>População por cor/raça</h3><p class="sub">Censo 2022 — total de pessoas</p><div class="chart-box"><canvas id="c_raca"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="panel" data-panel="economia">
+    <div class="grid">
+      <div class="chart-card"><h3>PIB municipal</h3><p class="sub">Valores correntes (R$)</p><div class="chart-box"><canvas id="c_pib"></canvas></div></div>
+      <div class="chart-card"><h3>PIB per capita</h3><p class="sub">PIB / população (R$)</p><div class="chart-box"><canvas id="c_pibpc"></canvas></div></div>
+      <div class="chart-card"><h3>Valor Adicionado Bruto setorial</h3><p class="sub">Composição por setor (R$)</p><div class="chart-box"><canvas id="c_vab"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="panel" data-panel="trabalho">
+    <div class="grid">
+      <div class="chart-card"><h3>Empregos formais</h3><p class="sub">Vínculos ativos — RAIS/MTE</p><div class="chart-box"><canvas id="c_emp"></canvas></div></div>
+      <div class="chart-card"><h3>Empregos por setor (CNAE)</h3><p class="sub" id="sub_cnae">Top 10 setores</p><div class="chart-box"><canvas id="c_cnae"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="panel" data-panel="educacao">
+    <div class="grid">
+      <div class="chart-card"><h3>IDEB — Anos iniciais</h3><p class="sub">Município x Ceará (rede pública)</p><div class="chart-box"><canvas id="c_ideb_ini"></canvas></div></div>
+      <div class="chart-card"><h3>IDEB — Anos finais</h3><p class="sub">Município x Ceará (rede pública)</p><div class="chart-box"><canvas id="c_ideb_fin"></canvas></div></div>
+      <div class="chart-card"><h3>Diferença de IDEB (Município − Ceará)</h3><p class="sub">Verde = acima da média estadual</p><div class="chart-box"><canvas id="c_ideb_dif"></canvas></div></div>
+      <div class="chart-card"><h3>Atendimento escolar por faixa etária</h3><p class="sub">Taxa de frequência escolar bruta (%) — Censo 2022</p><div class="chart-box"><canvas id="c_atend"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Fontes: IBGE/SIDRA, INEP, RAIS/MTE · Agenda de Desenvolvimento Econômico Local — GestPública / SEBRAE-CE
+  <div class="credito">
+    Elaboração: Pablo Bandeira ·
+    <a href="https://instagram.com/pablorbandeira" target="_blank" rel="noopener">@pablorbandeira</a> ·
+    <a href="mailto:bandeiraroque@gmail.com">bandeiraroque@gmail.com</a>
+  </div>
+</footer>
+
+<div class="watermark">
+  <strong>Pablo Bandeira</strong>
+  Elaboração própria<br>
+  <a href="https://instagram.com/pablorbandeira" target="_blank" rel="noopener">@pablorbandeira</a><br>
+  bandeiraroque@gmail.com
+</div>
+
+<script src="data.js"></script>
+<script>
+const PAL = ["#143D5E","#2E9E5B","#1AA6A0","#E0A12E","#1d567f","#8c564b","#5BB98C","#d62728"];
+const fmtBR = n => n==null? "—" : n.toLocaleString("pt-BR");
+const fmtR$ = n => n==null? "—" : "R$ "+Number(n).toLocaleString("pt-BR",{maximumFractionDigits:0});
+const ABAS = [["demografia","Demografia"],["economia","Economia"],["trabalho","Trabalho"],["educacao","Educação"]];
+let charts = [];
+
+function destroyAll(){ charts.forEach(c=>c.destroy()); charts = []; }
+function mk(id,cfg){ const c=new Chart(document.getElementById(id),cfg); charts.push(c); return c; }
+const baseOpts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}};
+
+function kpis(d){
+  const pop = d.populacao.valores.at(-1), anoPop = d.populacao.anos.at(-1);
+  const pib = d.pib.valores.at(-1), anoPib = d.pib.anos.at(-1);
+  const emp = d.empregos.valores.at(-1), anoEmp = d.empregos.anos.at(-1);
+  const ini = d.ideb["iniciais (1-5)"];
+  const idebV = ini ? ini.municipio.filter(x=>x!=null).at(-1) : null;
+  const cards = [
+    [fmtBR(pop), `População (${anoPop})`],
+    [fmtR$(pib), `PIB (${anoPib})`],
+    [fmtBR(emp), `Empregos formais (${anoEmp})`],
+    [idebV??"—", "IDEB anos iniciais"]
+  ];
+  document.getElementById("kpis").innerHTML = cards.map(([v,l])=>`<div class="card-kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+}
+
+function render(nome){
+  const d = window.DADOS.municipios[nome];
+  destroyAll();
+  kpis(d);
+
+  mk("c_pop",{type:"line",data:{labels:d.populacao.anos,datasets:[{label:"População",data:d.populacao.valores,borderColor:PAL[0],backgroundColor:PAL[0]+"22",fill:true,tension:.3,pointRadius:0}]},options:baseOpts});
+
+  mk("c_raca",{type:"doughnut",data:{labels:d.cor_raca.categorias,datasets:[{data:d.cor_raca.valores,backgroundColor:PAL}]},options:{...baseOpts,plugins:{legend:{position:"right"}}}});
+
+  mk("c_pib",{type:"line",data:{labels:d.pib.anos,datasets:[{label:"PIB",data:d.pib.valores,borderColor:PAL[1],backgroundColor:PAL[1]+"22",fill:true,tension:.3,pointRadius:2}]},options:{...baseOpts,plugins:{...baseOpts.plugins,tooltip:{callbacks:{label:c=>fmtR$(c.raw)}}}}});
+
+  mk("c_pibpc",{type:"line",data:{labels:d.pib_per_capita.anos,datasets:[{label:"PIB per capita",data:d.pib_per_capita.valores,borderColor:PAL[4],backgroundColor:PAL[4]+"22",fill:true,tension:.3,pointRadius:2}]},options:{...baseOpts,plugins:{...baseOpts.plugins,tooltip:{callbacks:{label:c=>fmtR$(c.raw)}}}}});
+
+  mk("c_vab",{type:"bar",data:{labels:d.vab.anos,datasets:[
+    {label:"Agropecuária",data:d.vab.agropecuaria,backgroundColor:PAL[1]},
+    {label:"Indústria",data:d.vab.industria,backgroundColor:PAL[3]},
+    {label:"Serviços",data:d.vab.servicos,backgroundColor:PAL[0]},
+    {label:"Adm. pública",data:d.vab.adm_publica,backgroundColor:PAL[2]}
+  ]},options:{...baseOpts,scales:{x:{stacked:true},y:{stacked:true}}}});
+
+  mk("c_emp",{type:"line",data:{labels:d.empregos.anos,datasets:[{label:"Vínculos formais",data:d.empregos.valores,borderColor:PAL[4],backgroundColor:PAL[4]+"22",fill:true,tension:.3,pointRadius:2}]},options:baseOpts});
+
+  document.getElementById("sub_cnae").textContent = `Top 10 setores · RAIS ${d.empregos_cnae.ano}`;
+  mk("c_cnae",{type:"bar",data:{labels:d.empregos_cnae.setores,datasets:[{label:"Vínculos",data:d.empregos_cnae.valores,backgroundColor:PAL[6]}]},options:{...baseOpts,indexAxis:"y",plugins:{legend:{display:false}}}});
+
+  const ini=d.ideb["iniciais (1-5)"], fin=d.ideb["finais (6-9)"];
+  const idebCfg = s => ({type:"line",data:{labels:s.anos,datasets:[
+    {label:nome,data:s.municipio,borderColor:PAL[2],tension:.2,spanGaps:true},
+    {label:"Ceará",data:s.ceara,borderColor:PAL[5],borderDash:[6,4],tension:.2,spanGaps:true}
+  ]},options:{...baseOpts,scales:{y:{suggestedMin:2,suggestedMax:8}}}});
+  if(ini) mk("c_ideb_ini",idebCfg(ini));
+  if(fin) mk("c_ideb_fin",idebCfg(fin));
+
+  if(ini){
+    mk("c_ideb_dif",{type:"bar",data:{labels:ini.anos,datasets:[{label:"Diferença (anos iniciais)",data:ini.diferenca,backgroundColor:ini.diferenca.map(v=>v>=0?PAL[1]:PAL[2])}]},options:{...baseOpts,plugins:{legend:{display:false}}}});
+  }
+
+  mk("c_atend",{type:"bar",data:{labels:d.atendimento.faixas,datasets:[{label:"Taxa de frequência (%)",data:d.atendimento.valores,backgroundColor:PAL[0]}]},options:{...baseOpts,plugins:{legend:{display:false}},scales:{y:{max:100}}}});
+}
+
+function setTab(key){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.key===key));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.dataset.panel===key));
+}
+
+// init
+const tabsEl = document.getElementById("tabs");
+ABAS.forEach(([k,label],i)=>{
+  const b=document.createElement("button"); b.className="tab"; b.dataset.key=k; b.textContent=label;
+  b.onclick=()=>setTab(k); tabsEl.appendChild(b);
+});
+const sel = document.getElementById("muni");
+Object.keys(window.DADOS.municipios).forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);});
+sel.onchange = ()=>render(sel.value);
+
+render(sel.value);
+setTab("demografia");
+</script>
+</body>
+</html>
